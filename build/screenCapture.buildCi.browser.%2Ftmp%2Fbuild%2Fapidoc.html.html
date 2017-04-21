@@ -1,0 +1,300 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/carlos8f/node-cli-prompt">cli-prompt (v0.6.0)</a>
+</h1>
+<h4>A tiny CLI prompter</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.cli-prompt">module cli-prompt</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.cli-prompt.cli-prompt">
+            function <span class="apidocSignatureSpan"></span>cli-prompt
+            <span class="apidocSignatureSpan">(message, hideInput, onValue, onError)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.cli-prompt.multi">
+            function <span class="apidocSignatureSpan">cli-prompt.</span>multi
+            <span class="apidocSignatureSpan">(questions, onValue, onError)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.cli-prompt.password">
+            function <span class="apidocSignatureSpan">cli-prompt.</span>password
+            <span class="apidocSignatureSpan">(message, onValue, onError)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.cli-prompt" id="apidoc.module.cli-prompt">module cli-prompt</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.cli-prompt.cli-prompt" id="apidoc.element.cli-prompt.cli-prompt">
+        function <span class="apidocSignatureSpan"></span>cli-prompt
+        <span class="apidocSignatureSpan">(message, hideInput, onValue, onError)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function prompt(message, hideInput, onValue, onError) {
+  if (typeof hideInput === 'function') {
+    onError = onValue;
+    onValue = hideInput;
+    hideInput = false;
+  }
+
+  keypress(process.stdin);
+
+  function setRawMode(mode) {
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(mode);
+    }
+    else if (process.stderr.isTTY) {
+      tty.setRawMode(mode);
+    }
+  }
+  if (hideInput) setRawMode(true);
+
+  if (message !== null) process.stderr.write(message);
+
+  var gotInput = false;
+
+  function done (err) {
+    process.stdin.removeListener('keypress', listen);
+    process.stdin.removeListener('error', done);
+    process.stdin.removeListener('end', done);
+    process.stdin.pause();
+    if (hideInput) {
+      setRawMode(false);
+      console.error();
+    }
+    if (err &amp;&amp; onError) {
+      onError(err);
+    } else if (!gotInput &amp;&amp; onError) {
+      onError(new Error('stdin has ended'));
+    } else {
+      onValue(line, function () {}); // for backwards-compatibility, fake end() callback
+    }
+  }
+
+  if (stdinEnded) {
+    process.nextTick(done);
+    return;
+  }
+
+  function listen (c, key) {
+    gotInput = true;
+    if (key) {
+      if (key.ctrl &amp;&amp; key.name === 'c') {
+        process.exit();
+      }
+      else if (key.name === 'return'){
+        if (hideInput == true){
+          done();
+        }
+        return;
+      } else if (key.name === 'enter' || key.sequence === '\r\n') {
+        line = line.trim();
+        done();
+        return;
+      }
+      if (key.name === 'backspace') line = line.slice(0, -1);
+    }
+    if (!key || key.name !== 'backspace') line += c;
+  }
+
+  var line = '';
+  process.stdin.on('keypress', listen)
+
+  if (onError) {
+    process.stdin
+      .once('error', done)
+      .once('end', done);
+  }
+
+  process.stdin.resume();
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.cli-prompt.multi" id="apidoc.element.cli-prompt.multi">
+        function <span class="apidocSignatureSpan">cli-prompt.</span>multi
+        <span class="apidocSignatureSpan">(questions, onValue, onError)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function multi(questions, onValue, onError) {
+  var idx = 0, ret = {};
+  (function ask () {
+    var q = questions[idx++];
+    if (typeof q === 'string') {
+      q = {key: q};
+    }
+    function record (val) {
+      function retry () {
+        idx--;
+        ask();
+      }
+      if (q.required &amp;&amp; typeof q.default === 'undefined' &amp;&amp; !val) return retry();
+      if (!val &amp;&amp; typeof q.default !== 'undefined') {
+        val = def;
+      }
+      if (q.validate) {
+        try {
+           var ok = q.validate.call(ret, val);
+        }
+        catch (e) {
+          console.error(e.message);
+          return retry();
+        }
+        if (ok === false) return retry();
+      }
+      if (q.type === 'number') {
+        val = Number(val);
+        if (Number.isNaN(val)) return retry();
+      }
+      else if (q.type === 'boolean') val = val.match(/^(yes|ok|true|y)$/i) ? true : false;
+      if (typeof q.key !== 'undefined') ret[q.key] = val;
+      if (questions[idx]) ask();
+      else onValue(ret);
+    }
+    var label = (q.label || q.key) + ': ';
+    if (q.default) {
+      var def = (typeof q.default === 'function') ? val = q.default.call(ret) : q.default;
+      label += '(' + def + ') ';
+    }
+    else if (q.type === 'boolean') {
+      label += '(y/n) ';
+      q.validate = function (val){
+        if (!val.match(/^(yes|ok|true|y|no|false|n)$/i)) return false;
+      };
+    }
+    prompt(label, q.type === 'password', record, onError);
+  })();
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+```
+
+### Multiple questions
+
+```js
+var prompt = require('cli-prompt');
+
+prompt.<span class="apidocCodeKeywordSpan">multi</span>([
+{
+  key: 'username',
+  default: 'john_doe'
+},
+{
+  label: 'password (must be at least 5 characters)',
+  key: 'password',
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.cli-prompt.password" id="apidoc.element.cli-prompt.password">
+        function <span class="apidocSignatureSpan">cli-prompt.</span>password
+        <span class="apidocSignatureSpan">(message, onValue, onError)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function password(message, onValue, onError) {
+  prompt(message, true, function (val) {
+    // password is required
+    if (!val) password(message, onValue, onError);
+    else onValue(val, function () {}); // for backwards-compatibility, fake end() callback
+  }, onError);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+```
+
+### Password/hidden input
+
+```js
+var prompt = require('cli-prompt');
+
+prompt.<span class="apidocCodeKeywordSpan">password</span>('tell me a secret: ', console.log, console.error);
+```
+
+### Multiple questions
+
+```js
+var prompt = require('cli-prompt');
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
